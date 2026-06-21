@@ -62,7 +62,7 @@ struct AccessCard: View {
                             .stroke(Color.cyan.opacity(0.35), lineWidth: 1)
                     }
 
-                    Text("Escribe únicamente la primera parte de tu dirección. Nosotros agregaremos .samvitals.com automáticamente.")
+                    Text("Escribe únicamente Tu SAMVITALS ID")
                         .font(.system(size: metrics.isCompact ? 11 : 13))
                         .foregroundStyle(Color(red: 0.45, green: 0.52, blue: 0.64))
                         .lineLimit(2)
