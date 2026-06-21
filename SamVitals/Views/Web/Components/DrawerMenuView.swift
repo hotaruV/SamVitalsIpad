@@ -7,6 +7,7 @@ struct DrawerMenuView: View {
     let onSelect: (NavigationItem) -> Void
     let onRetry: () -> Void
     let onClose: () -> Void
+    let onChangeTenant: () -> Void
 
     @State private var expandedItemIDs: Set<String> = []
 
@@ -16,7 +17,8 @@ struct DrawerMenuView: View {
         errorMessage: String? = nil,
         onSelect: @escaping (NavigationItem) -> Void,
         onRetry: @escaping () -> Void = {},
-        onClose: @escaping () -> Void = {}
+        onClose: @escaping () -> Void = {},
+        onChangeTenant: @escaping () -> Void = {}
     ) {
         self.items = items
         self.isLoading = isLoading
@@ -24,6 +26,7 @@ struct DrawerMenuView: View {
         self.onSelect = onSelect
         self.onRetry = onRetry
         self.onClose = onClose
+        self.onChangeTenant = onChangeTenant
         _expandedItemIDs = State(
             initialValue: Set(
                 items
@@ -43,10 +46,15 @@ struct DrawerMenuView: View {
 
             Divider()
 
-            Text("SamVitals para iPad")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .padding(.vertical, 14)
+            Button(action: onChangeTenant) {
+                Label("Cambiar SamVitals ID", systemImage: "arrow.left.circle")
+                    .font(.system(size: 13, weight: .semibold))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 13)
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(Color(red: 0.27, green: 0.35, blue: 0.48))
+            .accessibilityHint("Regresa a la selección de clínica o consultorio")
         }
         .background(Color(.systemBackground))
         .accessibilityElement(children: .contain)

@@ -3,17 +3,29 @@ import WebKit
 
 struct SamVitalsWebView: View {
     let url: URL
+    var navigationRequestID: UUID? = nil
+    var onURLChange: (URL) -> Void = { _ in }
 
     var body: some View {
-        WebViewRepresentable(url: url)
+        WebViewRepresentable(
+            url: url,
+            navigationRequestID: navigationRequestID,
+            onURLChange: onURLChange
+        )
     }
 }
 
 private struct WebViewRepresentable: UIViewRepresentable {
     let url: URL
+    let navigationRequestID: UUID?
+    let onURLChange: (URL) -> Void
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(initialURL: url)
+        Coordinator(
+            initialURL: url,
+            navigationRequestID: navigationRequestID,
+            onURLChange: onURLChange
+        )
     }
 
     func makeUIView(context: Context) -> WKWebView {
@@ -28,6 +40,7 @@ private struct WebViewRepresentable: UIViewRepresentable {
         refreshControl.addTarget(context.coordinator, action: #selector(Coordinator.refresh), for: .valueChanged)
         webView.scrollView.refreshControl = refreshControl
         context.coordinator.webView = webView
+        context.coordinator.observeURLChanges(in: webView)
 
         let loadingView = WebLoadingView()
         loadingView.translatesAutoresizingMaskIntoConstraints = false
@@ -58,8 +71,20 @@ private struct WebViewRepresentable: UIViewRepresentable {
     }
 
     func updateUIView(_ webView: WKWebView, context: Context) {
-        guard context.coordinator.initialURL != url else { return }
+        context.coordinator.onURLChange = onURLChange
+
+        let shouldLoad: Bool
+        if let navigationRequestID {
+            shouldLoad = context.coordinator.navigationRequestID != navigationRequestID
+        } else {
+            shouldLoad = context.coordinator.initialURL != url
+        }
+
+        guard shouldLoad else {
+            return
+        }
         context.coordinator.initialURL = url
+        context.coordinator.navigationRequestID = navigationRequestID
         context.coordinator.load(url, in: webView)
     }
 
@@ -68,11 +93,30 @@ private struct WebViewRepresentable: UIViewRepresentable {
         weak var loadingView: WebLoadingView?
         weak var errorView: WebNetworkErrorView?
         var initialURL: URL
+        var navigationRequestID: UUID?
+        var onURLChange: (URL) -> Void
+        private var urlObservation: NSKeyValueObservation?
+        private var lastReportedURL: URL?
         var allowedHost: String? { initialURL.host }
 
-        init(initialURL: URL) {
+        init(
+            initialURL: URL,
+            navigationRequestID: UUID?,
+            onURLChange: @escaping (URL) -> Void
+        ) {
             self.initialURL = initialURL
+            self.navigationRequestID = navigationRequestID
+            self.onURLChange = onURLChange
             super.init()
+        }
+
+        func observeURLChanges(in webView: WKWebView) {
+            urlObservation = webView.observe(\.url, options: [.new]) { [weak self] _, change in
+                guard let url = change.newValue ?? nil else { return }
+                DispatchQueue.main.async {
+                    self?.report(url)
+                }
+            }
         }
 
         func load(_ url: URL, in webView: WKWebView) {
@@ -107,7 +151,11 @@ private struct WebViewRepresentable: UIViewRepresentable {
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation?) {
             webView.scrollView.refreshControl?.endRefreshing()
             loadingView?.stopAnimating()
-            exportCookies(from: webView)
+            exportCookies(from: webView) { [weak self, weak webView] in
+                guard let self, let finalURL = webView?.url else { return }
+                initialURL = finalURL
+                report(finalURL)
+            }
         }
 
         func webView(_ webView: WKWebView, didFail navigation: WKNavigation?, withError error: Error) {
@@ -181,10 +229,17 @@ private struct WebViewRepresentable: UIViewRepresentable {
             group.notify(queue: .main, execute: completion)
         }
 
-        private func exportCookies(from webView: WKWebView) {
+        private func exportCookies(from webView: WKWebView, completion: @escaping () -> Void) {
             webView.configuration.websiteDataStore.httpCookieStore.getAllCookies { cookies in
                 cookies.forEach(HTTPCookieStorage.shared.setCookie)
+                DispatchQueue.main.async(execute: completion)
             }
+        }
+
+        private func report(_ url: URL) {
+            guard lastReportedURL != url else { return }
+            lastReportedURL = url
+            onURLChange(url)
         }
     }
 }

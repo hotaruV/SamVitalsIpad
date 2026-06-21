@@ -3,8 +3,10 @@ import WebKit
 
 struct WebShellView: View {
     let initialURL: URL
+    let onChangeTenant: () -> Void
 
-    @State private var currentURL: URL
+    @State private var navigationRequest: WebNavigationRequest
+    @State private var visibleURL: URL
     @State private var isDrawerOpen = false
     @State private var navigationItems: [NavigationItem]
     @State private var isAppCookieReady = false
@@ -17,18 +19,54 @@ struct WebShellView: View {
     init(
         initialURL: URL,
         navigationItems: [NavigationItem] = [],
-        navigationService: MobileNavigationService? = nil
+        navigationService: MobileNavigationService? = nil,
+        onChangeTenant: @escaping () -> Void = {}
     ) {
         self.initialURL = initialURL
+        self.onChangeTenant = onChangeTenant
         self.navigationService = navigationService ?? MobileNavigationService()
-        _currentURL = State(initialValue: initialURL)
+        _navigationRequest = State(
+            initialValue: WebNavigationRequest(destination: initialURL)
+        )
+        _visibleURL = State(initialValue: initialURL)
         _navigationItems = State(initialValue: navigationItems)
+    }
+
+    private var isPublicAccessScreen: Bool {
+        WebRouteVisibility.isPublicAccessURL(visibleURL)
+    }
+
+    private var isLoginScreen: Bool {
+        WebRouteVisibility.isLoginURL(visibleURL)
     }
 
     var body: some View {
         GeometryReader { geometry in
             ZStack(alignment: .leading) {
-                webContent
+                loginChromeBackground
+                    .ignoresSafeArea()
+
+                VStack(spacing: 0) {
+                    loginHeader
+                        .frame(height: isLoginScreen ? 58 : 0)
+                        .opacity(isLoginScreen ? 1 : 0)
+                        .clipped()
+                        .allowsHitTesting(isLoginScreen)
+
+                    webContent
+                        .ignoresSafeArea(edges: isLoginScreen ? [] : .all)
+
+                    loginFooter
+                        .padding(
+                            .bottom,
+                            isLoginScreen ? max(geometry.safeAreaInsets.bottom, 12) : 0
+                        )
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(height: isLoginScreen ? nil : 0)
+                        .opacity(isLoginScreen ? 1 : 0)
+                        .clipped()
+                        .allowsHitTesting(isLoginScreen)
+                }
 
                 if isDrawerOpen {
                     Color.black.opacity(0.28)
@@ -41,7 +79,8 @@ struct WebShellView: View {
                         errorMessage: navigationError,
                         onSelect: handleSelection,
                         onRetry: reloadNavigationItems,
-                        onClose: closeDrawer
+                        onClose: closeDrawer,
+                        onChangeTenant: changeTenant
                     )
                     .frame(width: drawerWidth(for: geometry.size.width))
                     .frame(maxHeight: .infinity)
@@ -58,7 +97,7 @@ struct WebShellView: View {
                 }
             }
             .overlay(alignment: .topLeading) {
-                if !isDrawerOpen {
+                if !isDrawerOpen && !isPublicAccessScreen {
                     menuButton
                         .padding(.leading, 16)
                         .padding(.top, geometry.safeAreaInsets.top + 35)
@@ -68,21 +107,52 @@ struct WebShellView: View {
         .animation(.easeInOut(duration: 0.24), value: isDrawerOpen)
         .task(id: initialURL) {
             await prepareAppCookie()
-            await loadNavigationItems(force: false)
         }
     }
 
     @ViewBuilder
     private var webContent: some View {
         if isAppCookieReady {
-            SamVitalsWebView(url: currentURL)
-                .ignoresSafeArea()
+            SamVitalsWebView(
+                url: navigationRequest.destination,
+                navigationRequestID: navigationRequest.id,
+                onURLChange: handleURLChange
+            )
         } else {
             ZStack {
                 Color(.systemBackground).ignoresSafeArea()
                 ProgressView("Preparando SamVitals…")
             }
         }
+    }
+
+    private var loginHeader: some View {
+        HStack {
+            changeTenantButton
+            Spacer()
+        }
+        .padding(.horizontal, 16)
+        .background(.clear)
+        .accessibilityElement(children: .contain)
+    }
+
+    private var loginFooter: some View {
+        FooterView()
+            .padding(.horizontal, 20)
+            .padding(.vertical, 2)
+        .frame(maxWidth: .infinity)
+        .background(.clear)
+    }
+
+    private var loginChromeBackground: some View {
+        LinearGradient(
+            colors: [
+                Color(red: 0.93, green: 0.98, blue: 1.0),
+                Color(red: 0.98, green: 0.99, blue: 1.0)
+            ],
+            startPoint: .leading,
+            endPoint: .trailing
+        )
     }
 
     private var menuButton: some View {
@@ -103,6 +173,19 @@ struct WebShellView: View {
         .accessibilityLabel("Abrir menú de SamVitals")
     }
 
+    private var changeTenantButton: some View {
+        Button(action: changeTenant) {
+            Label("Cambiar SamVitals ID", systemImage: "chevron.left")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(Color(red: 0.04, green: 0.32, blue: 0.43))
+                .padding(.horizontal, 14)
+                .frame(height: 42)
+        }
+        .buttonStyle(.plain)
+        .contentShape(Rectangle())
+        .accessibilityHint("Regresa a la pantalla para elegir clínica o consultorio")
+    }
+
     private func handleSelection(_ item: NavigationItem) {
         guard item.isNavigable,
               let destination = destinationURL(for: item) else {
@@ -110,11 +193,12 @@ struct WebShellView: View {
             return
         }
 
-        currentURL = destination
+        navigationRequest = WebNavigationRequest(destination: destination)
         closeDrawer()
     }
 
     private func openDrawer() {
+        guard !isPublicAccessScreen else { return }
         isDrawerOpen = true
 
         if navigationItems.isEmpty || navigationError != nil {
@@ -124,6 +208,24 @@ struct WebShellView: View {
 
     private func closeDrawer() {
         isDrawerOpen = false
+    }
+
+    private func changeTenant() {
+        closeDrawer()
+        onChangeTenant()
+    }
+
+    private func handleURLChange(_ url: URL) {
+        guard url.host?.lowercased() == initialURL.host?.lowercased() else { return }
+        visibleURL = url
+
+        if WebRouteVisibility.isPublicAccessURL(url) {
+            closeDrawer()
+            navigationItems = []
+            navigationError = nil
+        } else if navigationItems.isEmpty {
+            Task { await loadNavigationItems(force: false) }
+        }
     }
 
     private func drawerWidth(for availableWidth: CGFloat) -> CGFloat {
@@ -149,8 +251,11 @@ struct WebShellView: View {
         defer { isLoadingNavigation = false }
 
         do {
-            navigationItems = try await navigationService.loadItems(for: initialURL)
+            let loadedItems = try await navigationService.loadItems(for: initialURL)
+            guard !isPublicAccessScreen else { return }
+            navigationItems = loadedItems
         } catch {
+            guard !isPublicAccessScreen else { return }
             navigationError = error.localizedDescription
         }
     }
@@ -179,6 +284,36 @@ struct WebShellView: View {
         }
 
         isAppCookieReady = true
+    }
+}
+
+private struct WebNavigationRequest: Equatable {
+    let id = UUID()
+    let destination: URL
+}
+
+enum WebRouteVisibility {
+    static func isLoginURL(_ url: URL) -> Bool {
+        normalizedPath(for: url) == "login"
+    }
+
+    static func isPublicAccessURL(_ url: URL) -> Bool {
+        let path = normalizedPath(for: url)
+
+        return path.isEmpty ||
+            path == "login" ||
+            path == "register" ||
+            path == "forgot-password" ||
+            path == "reset-password" ||
+            path.hasPrefix("reset-password/") ||
+            path == "email/verify" ||
+            path.hasPrefix("email/verify/")
+    }
+
+    private static func normalizedPath(for url: URL) -> String {
+        url.path
+            .trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+            .lowercased()
     }
 }
 

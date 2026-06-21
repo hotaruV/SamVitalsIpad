@@ -8,7 +8,20 @@ enum NavigationItemContractTests {
         try generatesStableIdentity()
         mapsHeroiconsToSFSymbols()
         resolvesOnlyTrustedTenantRoutes()
+        hidesNavigationOnPublicAccessRoutes()
         print("NavigationItem contract tests passed")
+    }
+
+    private static func hidesNavigationOnPublicAccessRoutes() {
+        let base = "https://demo.samvitals.com"
+
+        assert(WebRouteVisibility.isPublicAccessURL(URL(string: "\(base)/login")!))
+        assert(WebRouteVisibility.isLoginURL(URL(string: "\(base)/login")!))
+        assert(WebRouteVisibility.isPublicAccessURL(URL(string: "\(base)/forgot-password")!))
+        assert(!WebRouteVisibility.isLoginURL(URL(string: "\(base)/forgot-password")!))
+        assert(WebRouteVisibility.isPublicAccessURL(URL(string: "\(base)/reset-password/token")!))
+        assert(!WebRouteVisibility.isPublicAccessURL(URL(string: "\(base)/dashboard")!))
+        assert(!WebRouteVisibility.isPublicAccessURL(URL(string: "\(base)/menu/agenda")!))
     }
 
     private static func decodesNavigableItem() throws {
@@ -116,6 +129,22 @@ enum NavigationItemContractTests {
                 for: "menu/agenda?day=today",
                 relativeTo: tenantURL
             )?.absoluteString == "https://demo.samvitals.com/menu/agenda?day=today"
+        )
+        assert(
+            resolver.destinationURL(
+                for: "/pacientes",
+                relativeTo: URL(
+                    string: "https://demo.samvitals.com/pacientes/42/expediente"
+                )!
+            )?.absoluteString == "https://demo.samvitals.com/pacientes"
+        )
+        assert(
+            resolver.destinationURL(
+                for: "/agenda",
+                relativeTo: URL(
+                    string: "https://demo.samvitals.com/agenda/consulta/99"
+                )!
+            )?.absoluteString == "https://demo.samvitals.com/agenda"
         )
         assert(
             resolver.destinationURL(

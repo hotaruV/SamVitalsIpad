@@ -21,7 +21,10 @@ struct ContentView: View {
                     useAnotherTenant: viewModel.forgetStoredSession
                 )
             } else if let loginURL = viewModel.loginURL {
-                WebShellView(initialURL: loginURL)
+                WebShellView(
+                    initialURL: loginURL,
+                    onChangeTenant: viewModel.forgetStoredSession
+                )
             } else {
                 StartView(
                     samVitalsID: $viewModel.samVitalsID,
