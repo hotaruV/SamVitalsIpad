@@ -10,9 +10,22 @@
 		079E7FB82FE5CE15003EAFEB /* SamVitals.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SamVitals.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		07A6F4B92FE8B7DA00EAA180 /* Exceptions for "SamVitals" folder in "SamVitals" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 079E7FB72FE5CE15003EAFEB /* SamVitals */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		079E7FBA2FE5CE15003EAFEB /* SamVitals */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				07A6F4B92FE8B7DA00EAA180 /* Exceptions for "SamVitals" folder in "SamVitals" target */,
+			);
 			path = SamVitals;
 			sourceTree = "<group>";
 		};
@@ -251,12 +264,15 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = 6PM9HZL2HU;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = SamVitals/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = SamVitals;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.medical";
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "SamVitals usa Face ID para proteger el acceso a tu espacio clínico.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -291,12 +307,15 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = 6PM9HZL2HU;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = SamVitals/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = SamVitals;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.medical";
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "SamVitals usa Face ID para proteger el acceso a tu espacio clínico.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;

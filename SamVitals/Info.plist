@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>NSCameraUsageDescription</key>
+	<string>SamVitals usa la cámara para capturar documentos e imágenes clínicas que decidas adjuntar.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>SamVitals usa el micrófono al grabar video desde la cámara para adjuntarlo a tu expediente.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>SamVitals accede a las fotos que selecciones para adjuntarlas a tu expediente clínico.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>SamVitals puede guardar en Fotos los archivos que decidas descargar.</string>
+</dict>
+</plist>
